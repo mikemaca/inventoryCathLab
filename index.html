@@ -61,6 +61,8 @@
       <area alt="G549" coords="175,112,214,145" shape="rect">
       <area alt="G550A" coords="172,66,219,106" shape="rect">
       <area alt="CRU" coords="176,152,211,206" shape="rect">
+      <area alt="Dirty" coords="280,310,334,345" shape="rect">
+      <area alt="Pacemaker Datel Tray" coords="146,94,171,130" shape="rect">
     </map>
   </div>
 
@@ -10807,7 +10809,7 @@
           const button = document.createElement('button');
           button.textContent = `${result.Description} (Ref: ${result.ReferenceNo})`;
           button.addEventListener('click', () => {
-            resultDiv.innerHTML = `<strong>Description:</strong> ${result.Description}<br><strong>Reference No:</strong> ${result.ReferenceNo}<br><strong>APC Code:</strong> ${result.APC_CODE}`;
+            resultDiv.innerHTML = `<strong>Description:</strong> ${result.Description}<br><strong>Reference No:</strong> ${result.ReferenceNo}<br><strong>Location:</strong> ${result.APC_CODE}`;
             const coords = apcCodeMapping[result.APC_CODE];
             if (coords) {
               highlightArea.style.top = coords.top + 'px';
