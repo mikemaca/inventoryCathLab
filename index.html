@@ -14925,7 +14925,7 @@
     "DESCRIPTION": "BMW Universal 300 cm",
     "ReferenceNo": "1009665",
     "APC_CODE": "",
-    "COMMENT": "S4227_x000D_\nLocation: G550/Cart M"
+    "COMMENT": "Cart M"
   },
   {
     "DESCRIPTION": "Bracco ANGIOTOUCH HAND CONTROLLER AT-P65 FOR ACIST CVI CONTRAST",
@@ -15832,9 +15832,16 @@ const apcCodeMapping = {
   "Dirty": {top: 307, left: 252, width: 83, height: 37},
 };
 // https://www.image-map.net/ // 
-//coords="400,250,520,370"
-//left = 400, top = 250, width = 520-400 = 120, height = 370-250 = 120
-//    "334,345,251,310" 
+//35,344,252,307
+//X1 = 252
+//Y1 = 307
+//X2 = 335
+//Y2 = 344
+//Now let’s convert to the format your script uses (top, left, width, height):
+//left = X1 = 252
+//top = Y1 = 307
+//width = X2 - X1 = 335 - 252 = 83
+//height = Y2 - Y1 = 344 - 307 = 37
   
 
     const searchInput = document.getElementById('search');
