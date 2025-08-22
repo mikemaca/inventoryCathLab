@@ -15847,12 +15847,13 @@ const apcCodeMapping = {
 
     searchInput.addEventListener('input', () => {
       const query = searchInput.value.trim().toLowerCase();
-      const results = inventoryData.filter(item =>
-        item.Description.toLowerCase().includes(query) ||
-        item.ReferenceNo.toLowerCase().includes(query)
-      );
-
-      matchesDiv.innerHTML = '<strong>Matching Items:</strong><br>';
+      const results = inventoryData.filter(item => {
+  const desc = (item.DESCRIPTION || '').toString().toLowerCase();
+  const ref  = (item.ReferenceNo || '').toString().toLowerCase();
+  const apc  = (item.APC_CODE || '').toString().toLowerCase();
+  return desc.includes(query) || ref.includes(query) || apc.includes(query);
+});
+matchesDiv.innerHTML = '<strong>Matching Items:</strong><br>';
       highlightArea.style.display = 'none';
 
       if (results.length) {
