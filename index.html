@@ -15,7 +15,6 @@
     .status { margin: 6px 0 10px; font-size: 0.95rem; color: #555; }
     .hidden { display:none; }
   </style>
-  <!-- SheetJS for reading Excel files in the browser -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -35,7 +34,6 @@
   </div>
 
 <script>
-// ===== Map coordinates (unchanged) =====
 const apcCodeMapping = {
   "Cart-A": {top: 142, left: 318, width: 34, height: 20},
   "Cart-B": {top: 110, left: 292, width: 27, height: 52},
@@ -69,8 +67,7 @@ const apcCodeMapping = {
   "Dirty": {top: 334, left: 345, width: 83, height: 35},
 };
 
-// ===== State & elements =====
-let inventoryData = []; // will be filled from Excel
+let inventoryData = [];
 const searchInput = document.getElementById('search');
 const matchesDiv = document.getElementById('matches');
 const resultDiv = document.getElementById('result');
@@ -78,15 +75,12 @@ const commentText = document.getElementById('comment-text');
 const highlightArea = document.getElementById('highlight-area');
 const statusEl = document.getElementById('status');
 
-// ===== Utility: normalize row keys (accept both upper/lower case headers) =====
 function normKey(row, key) {
-  // tries exact, UPPER, lower, Title case
   if (row[key] !== undefined) return row[key];
   const candidates = [key.toUpperCase(), key.toLowerCase(), key[0].toUpperCase() + key.slice(1).toLowerCase()];
   for (const c of candidates) {
     if (row[c] !== undefined) return row[c];
   }
-  // search by case-insensitive match
   const found = Object.keys(row).find(k => k.toLowerCase() === key.toLowerCase());
   return found ? row[found] : "";
 }
@@ -100,15 +94,30 @@ function normalizeRow(row) {
   };
 }
 
-// ===== Load Excel (first sheet) =====
+function pickSheetWithHeaders(wb) {
+  // Prefer a sheet literally named "Inventory"
+  const prefer = wb.SheetNames.find(n => n.toLowerCase() === 'inventory');
+  if (prefer) return wb.Sheets[prefer];
+  // Otherwise scan for a sheet with likely headers
+  for (const name of wb.SheetNames) {
+    const ws = wb.Sheets[name];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false });
+    const first = (rows[0] || []).map(v => String(v || '').toLowerCase().trim());
+    const score = ['description','referenceno','apc_code','comment'].filter(h => first.includes(h)).length;
+    if (score >= 2) return ws;
+  }
+  // Fallback to first
+  return wb.Sheets[wb.SheetNames[0]];
+}
+
 async function loadExcel() {
   try {
-    const res = await fetch('inventory.xlsx');
+    const res = await fetch('inventory.xlsx', { cache: 'no-store' });
     if (!res.ok) throw new Error('Could not fetch inventory.xlsx (' + res.status + ')');
     const arrayBuf = await res.arrayBuffer();
     const wb = XLSX.read(arrayBuf, { type: 'array' });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' }); // array of objects using headers
+    const ws = pickSheetWithHeaders(wb);
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
     inventoryData = rows.map(normalizeRow).filter(r => r.DESCRIPTION || r.ReferenceNo || r.APC_CODE);
     statusEl.textContent = 'Inventory loaded: ' + inventoryData.length + ' items';
     searchInput.disabled = false;
@@ -116,18 +125,16 @@ async function loadExcel() {
   } catch (err) {
     console.error(err);
     statusEl.textContent = 'Failed to load inventory.xlsx. You can also use the file picker below.';
-    // show file picker fallback
     document.getElementById('picker-wrap').classList.remove('hidden');
   }
 }
 
-// ===== Fallback: local file picker (no server required) =====
 async function handleFile(e) {
   const file = e.target.files[0];
   if (!file) return;
   const data = await file.arrayBuffer();
   const wb = XLSX.read(data, { type: 'array' });
-  const ws = wb.Sheets[wb.SheetNames[0]];
+  const ws = pickSheetWithHeaders(wb);
   const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
   inventoryData = rows.map(normalizeRow).filter(r => r.DESCRIPTION || r.ReferenceNo || r.APC_CODE);
   statusEl.textContent = 'Loaded from file: ' + file.name + ' — ' + inventoryData.length + ' items';
@@ -135,7 +142,6 @@ async function handleFile(e) {
   searchInput.focus();
 }
 
-// ===== Search UI behavior (same as before, now using Excel data) =====
 searchInput.addEventListener('input', () => {
   const query = searchInput.value.trim().toLowerCase();
   const results = inventoryData.filter(item => {
@@ -181,17 +187,14 @@ searchInput.addEventListener('input', () => {
   }
 });
 
-// Start: try to fetch inventory.xlsx
 loadExcel();
 </script>
 
-<!-- Local file picker fallback (works from file://) -->
 <div id="picker-wrap" class="hidden" style="margin-top:10px;">
   <label>Or load an Excel file: <input type="file" id="filePicker" accept=".xlsx,.xls" /></label>
 </div>
 <script>
   document.getElementById('filePicker').addEventListener('change', handleFile);
 </script>
-
 </body>
 </html>
