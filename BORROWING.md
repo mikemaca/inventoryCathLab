@@ -8,3 +8,5 @@ Prepare email opens the device mail app addressed to mike_ma_ca@hotmail.com. The
 
 Checks: `node --check borrow.js` and `node borrow.test.cjs`.
 Before release, test camera capture on iOS and Android, actual label OCR, editing/removing multiple items, contact validation, and delivery with the intended email app.
+
+Photo extraction now uses sparse-text recognition followed by an automatic second layout pass when fields are missing. The parser supports multiple fields per line, values on the following line, catalog/batch/use-by headings, spaced GTINs, and product-name lines containing common device terms. Missing fields remain blank; this is heuristic OCR, not guaranteed extraction for every manufacturer label.

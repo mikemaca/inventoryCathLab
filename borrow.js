@@ -1,12 +1,30 @@
 'use strict';
 function parseLabel(text) {
+  text = text.replace(/\r/g,'').replace(/[\u2010-\u2015]/g,'-');
   const field = pattern => (text.match(pattern)?.[1] || '').trim();
+  const labels = /\b(?:GTIN|UDI|REF(?:ERENCE)?|CAT(?:ALOG(?:UE)?)?(?:\s*(?:NO|NUMBER))?|LOT|BATCH|EXP(?:IRY|IRATION)?(?:\s*DATE)?|USE[ -]BY|DESCRIPTION|DESC)\b\s*[.:#]?/gi;
+  const matches = [...text.matchAll(labels)];
+  const values = {};
+  matches.forEach((match,i)=>{
+    const value=text.slice(match.index+match[0].length,matches[i+1]?.index ?? text.length).trim();
+    values[match[0].replace(/[.:#]/g,'').trim().toUpperCase()]=value;
+  });
+  const get = pattern => Object.entries(values).find(([k])=>pattern.test(k))?.[1] || '';
+  const token = value => value.match(/^[\s\[\]]*([A-Z0-9][A-Z0-9./_-]*)/i)?.[1] || '';
+  const gtin = (get(/^(GTIN|UDI)$/).split('\n')[0].match(/\b(?:\d[ -]?){8,14}\b/)?.[0] || '').replace(/[ -]/g,'');
+  const datePattern = /\b(?:\d{4}[-/.]\d{2}(?:[-/.]\d{2})?|\d{2}[-/.]\d{2}[-/.]\d{4}|\d{2}[- /][A-Z]{3}[- /]\d{4}|\d{6})\b/i;
+  let description = get(/^(DESCRIPTION|DESC)$/).split('\n')[0];
+  if(!description) {
+    // A product-name line is often printed without a DESCRIPTION heading.
+    const candidates=text.split('\n').map(s=>s.trim()).filter(s=>/\b(catheter|balloon|guide\s?wire|wire|sheath|stent|introducer|valve|syringe|needle|dilator|manifold|transducer|extension|tubing|device)\b/i.test(s) && !/\b(sterile|warning|caution|reuse|manufacturer|www|expiry|lot|ref)\b/i.test(s));
+    description=candidates.sort((a,b)=>b.length-a.length)[0] || '';
+  }
   return {
-    description: field(/(?:DESCRIPTION|DESC)\s*[:#]?\s*([^\n]+)/i),
-    gtin: field(/\bGTIN\s*[:#]?\s*(\d{8,14})\b/i) || field(/\(01\)\s*(\d{14})/),
-    ref: field(/\bREF(?:ERENCE)?\b\s*[:#]?\s*([A-Z0-9][A-Z0-9./_-]*)/i),
-    lot: field(/\bLOT\b\s*[:#]?\s*([A-Z0-9][A-Z0-9./_-]*)/i) || field(/\(10\)\s*([^\s(]+)/),
-    expiry: field(/(?:EXPIRY|EXPIRATION|EXP|USE BY)\s*[:#]?\s*([^\n]+)/i) || field(/\(17\)\s*(\d{6})/)
+    description,
+    gtin: field(/\(\s*01\s*\)\s*(\d{14})/) || (/^(?:\d{8}|\d{12,14})$/.test(gtin)?gtin:''),
+    ref: token(get(/^(REF|REFERENCE|CAT)/)),
+    lot: field(/\(\s*10\s*\)\s*([^\s(]+)/) || token(get(/^(LOT|BATCH)$/)),
+    expiry: get(/^(EXP|USE)/).match(datePattern)?.[0] || field(/\(\s*17\s*\)\s*(\d{6})/)
   };
 }
 if (typeof module !== 'undefined') module.exports = { parseLabel };
@@ -32,10 +50,21 @@ if (typeof document !== 'undefined') {
    let worker;
    try{
      $('status').textContent='Reading label…';
-     worker=await Tesseract.createWorker('eng');
+     worker=await Tesseract.createWorker('eng',1,{logger:m=>{if(m.status==='recognizing text')$('status').textContent=`Reading label… ${Math.round(m.progress*100)}%`;}});
+     await worker.setParameters({tessedit_pageseg_mode:'11'});
      const {data}=await worker.recognize(file);$('raw').textContent=data.text;
-     const values=parseLabel(data.text);Object.entries(values).forEach(([k,v])=>$(k).value=v);
-     $('status').textContent='Reading complete. Check all fields and fill any missing details. Expiry is preserved as printed (GS1 dates use YYMMDD).';
+     const values=parseLabel(data.text);
+     if(Object.values(values).filter(Boolean).length<5){
+       $('status').textContent='Checking the label again for missing fields…';
+       await worker.setParameters({tessedit_pageseg_mode:'3'});
+       const second=await worker.recognize(file);
+       const extra=parseLabel(second.data.text);
+       Object.keys(values).forEach(k=>{if(!values[k])values[k]=extra[k];});
+       $('raw').textContent+='\n--- Second reading ---\n'+second.data.text;
+     }
+     Object.entries(values).forEach(([k,v])=>$(k).value=v);
+     const missing=Object.keys(values).filter(k=>!values[k]);
+     $('status').textContent=`Automatically filled ${5-missing.length} of 5 fields. `+(missing.length?`Could not confidently identify: ${missing.join(', ')}. `:'')+'Check the filled details against the photo before adding the item.';
    }catch(error){$('status').textContent='Could not read this photo. Try a clear JPEG/PNG or enter the fields manually.';}
    finally{if(worker)await worker.terminate().catch(()=>{});$('editor').disabled=false;$('items').inert=false;refresh();}
  }

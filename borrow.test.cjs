@@ -5,3 +5,10 @@ assert.deepEqual(parseLabel('(01)01234567890128(17)280229(10)LOT42'), {descripti
 assert.equal(parseLabel('unreadable').gtin, '');
 assert.equal(parseLabel('LOT: 000123').lot, '000123');
 console.log('Label parsing checks passed');
+assert.deepEqual(parseLabel('Balloon dilatation catheter\nREF ABC-42 LOT L123 EXP 2028-02-29\nGTIN 0 123456 789012 8'), {description:'Balloon dilatation catheter',gtin:'01234567890128',ref:'ABC-42',lot:'L123',expiry:'2028-02-29'});
+assert.deepEqual(parseLabel('Guidewire\nCATALOG NO:\nGW-42\nBATCH:\n000123\nUSE BY:\n2028/02/29'), {description:'Guidewire',gtin:'',ref:'GW-42',lot:'000123',expiry:'2028/02/29'});
+assert.equal(parseLabel('MFG 2024-01-01\nEXP 2028-01-01 LOT A12').expiry,'2028-01-01');
+assert.equal(parseLabel('Manufactured 2024-01-01').expiry,'');
+assert.equal(parseLabel('REF\nLOT\nEXP').ref,'');
+assert.equal(parseLabel('DESCRIPTION: Balloon catheter REF A1 LOT B2 EXP 2028-03-01').description,'Balloon catheter');
+console.log('Additional label layout checks passed');
