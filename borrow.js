@@ -15,7 +15,7 @@ function parseLabel(text) {
     const value=text.slice(match.index+match[0].length,matches[i+1]?.index ?? text.length).trim();
     values[match[0].replace(/[.:#]/g,'').trim().toUpperCase()]=value;
   });
-  const get = pattern => Object.entries(values).find(([k])=>pattern.test(k))?.[1] || '';
+  const get = pattern => Object.entries(values).find(([k,v])=>pattern.test(k) && v.trim())?.[1] || '';
   const token = value => {
     const cleaned=value.replace(/\b(?:catalog|number|no)\b\.?/gi,'').trim();
     const candidate=cleaned.match(/^[\s\[\]]*([A-Z0-9][A-Z0-9./_-]*)/i)?.[1] || '';
