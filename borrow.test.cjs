@@ -12,3 +12,8 @@ assert.equal(parseLabel('Manufactured 2024-01-01').expiry,'');
 assert.equal(parseLabel('REF\nLOT\nEXP').ref,'');
 assert.equal(parseLabel('DESCRIPTION: Balloon catheter REF A1 LOT B2 EXP 2028-03-01').description,'Balloon catheter');
 console.log('Additional label layout checks passed');
+assert.equal(parseLabel('Rated Burst Pressure and Stent Rated\nPTCA Dilatation Catheter').description,'PTCA Dilatation Catheter');
+assert.equal(parseLabel('GTIN 00382903836891').gtin,'');
+assert.equal(parseLabel('REF Catalog Number H7493926708450').ref,'H7493926708450');
+assert.equal(parseLabel('REF we LOT S...').ref,'');
+console.log('Small-print regression checks passed');
